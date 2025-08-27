@@ -1,0 +1,5 @@
+<div class="toast-container" *ngIf="errors().length > 0">
+  <div *ngFor="let err of errors()" class="toast">
+    {{ err.message }}
+  </div>
+</div>

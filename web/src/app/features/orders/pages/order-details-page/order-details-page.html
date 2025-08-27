@@ -1,0 +1,48 @@
+<div class="order-details" *ngIf="order; else notFound">
+  <h1>Order #{{ order.id }}</h1>
+
+  <!-- Customer Info -->
+  <section class="customer-info">
+    <h2>Customer</h2>
+    <p><strong>Name:</strong> {{ order.customer.name }}</p>
+    <p><strong>Email:</strong> {{ order.customer.email }}</p>
+  </section>
+
+  <!-- Items -->
+  <section class="items">
+    <h2>Items</h2>
+    <ul>
+      <li *ngFor="let item of order.items">
+        {{ item.qty }} × {{ item.title }} — {{ item.price | currency }}
+      </li>
+    </ul>
+  </section>
+
+  <!-- Total & Notes -->
+  <section class="summary">
+    <p><strong>Total:</strong> {{ order.total | currency }}</p>
+    <p><strong>Notes:</strong> {{ order.notes }}</p>
+  </section>
+
+  <!-- Status Timeline -->
+  <section class="timeline">
+    <h2>Status Timeline</h2>
+    <ul>
+      <li [class.active]="order.status === 'pending'">Pending</li>
+      <li [class.active]="order.status === 'processing'">Processing</li>
+      <li [class.active]="order.status === 'shipped'">Shipped</li>
+      <li [class.active]="order.status === 'cancelled'">Cancelled</li>
+    </ul>
+  </section>
+
+  <!-- Actions -->
+  <section class="actions">
+    <button (click)="markAsProcessing()" [disabled]="order.status !== 'pending'">Processing</button>
+    <button (click)="shipOrder()" [disabled]="order.status !== 'processing'">Ship</button>
+    <button (click)="cancelOrder()" [disabled]="order.status === 'shipped' || order.status === 'cancelled'">Cancel</button>
+  </section>
+</div>
+
+<ng-template #notFound>
+  <p>Order not found.</p>
+</ng-template>

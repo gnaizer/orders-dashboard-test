@@ -1,0 +1,57 @@
+<div class="orders-page">
+  <h1>Orders</h1>
+
+  <!-- Filters -->
+  <div class="filters">
+    <input
+      type="text"
+      placeholder="Search by customer..."
+      [value]="searchFilter()"
+      (input)="onSearchChange($event)"
+    />
+    <select [value]="statusFilter()" (change)="onStatusChange($event)">
+      <option *ngFor="let status of statusOptions" [value]="status">{{ status }}</option>
+    </select>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading()">Loading orders...</div>
+
+  <!-- Error -->
+  <div *ngIf="error()" class="error">{{ error() }}</div>
+
+  <!-- Orders table -->
+  <table *ngIf="!loading() && !error()">
+    <thead>
+    <tr>
+      <th>ID</th>
+      <th>Customer</th>
+      <th>Status</th>
+      <th>Total</th>
+      <th>Date</th>
+      <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let order of filteredOrders()" [routerLink]="['/orders', order.id]">
+      <td>{{ order.id }}</td>
+      <td>{{ order.customer.name }}</td>
+      <td>{{ order.status }}</td>
+      <td>{{ order.total | currency }}</td>
+      <td>{{ order.createdAt | date }}</td>
+      <td>
+        <button (click)="markAsProcessing(order.id)" [disabled]="order.status !== 'pending'">Processing</button>
+        <button (click)="shipOrder(order.id)" [disabled]="order.status !== 'processing'">Ship</button>
+        <button (click)="cancelOrder(order.id)" [disabled]="order.status === 'shipped' || order.status === 'cancelled'">Cancel</button>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <button [disabled]="page === 1" (click)="onPageChange(page - 1)">Previous</button>
+    <span>Page {{ page }}</span>
+    <button (click)="onPageChange(page + 1)">Next</button>
+  </div>
+</div>

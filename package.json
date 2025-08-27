@@ -1,0 +1,13 @@
+{
+  "name": "orders-dashboard",
+  "private": true,
+  "workspaces": ["api", "web"],
+  "scripts": {
+    "start:api": "yarn --cwd api start",
+    "start:web": "yarn --cwd web start",
+    "start": "concurrently \"yarn start:api\" \"yarn start:web\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}

@@ -1,0 +1,14 @@
+/* You can add global styles to this file, and also import other style files */
+:root { --gap: 0.5rem; }
+body { font-family: system-ui, Arial, sans-serif; margin: 0; padding: 1rem; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border-bottom: 1px solid #eee; padding: 0.5rem; text-align: left; }
+.controls { display: flex; gap: var(--gap); flex-wrap: wrap; margin-bottom: 0.5rem; }
+.paginator { display: flex; gap: var(--gap); align-items: center; margin-top: 0.75rem; }
+.status-badge { padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.85rem; }
+.status-new { background: #eef; }
+.status-processing { background: #efe; }
+.status-shipped { background: #efe3; }
+.status-cancelled { background: #fee; }
+tr { cursor: pointer; }
+tr:hover { background: #fafafa; }

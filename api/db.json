@@ -1,0 +1,38 @@
+{
+  "orders": [
+    {
+      "id": 1001,
+      "createdAt": "2025-08-20T10:15:00.000Z",
+      "status": "new",
+      "customer": { "id": 1, "name": "Alice Johnson", "email": "alice@example.com" },
+      "items": [
+        { "sku": "SKU-001", "title": "Wireless Mouse", "qty": 1, "price": 29.99 },
+        { "sku": "SKU-002", "title": "Mechanical Keyboard", "qty": 1, "price": 79.5 }
+      ],
+      "notes": "",
+      "total": 109.49
+    },
+    {
+      "id": 1002,
+      "createdAt": "2025-08-21T08:05:00.000Z",
+      "status": "processing",
+      "customer": { "id": 2, "name": "Bogdan Petrenko", "email": "bogdan@example.com" },
+      "items": [
+        { "sku": "SKU-003", "title": "USB-C Hub", "qty": 2, "price": 39 }
+      ],
+      "notes": "Priority shipping",
+      "total": 78
+    },
+    {
+      "id": 1003,
+      "createdAt": "2025-08-22T12:00:00.000Z",
+      "status": "shipped",
+      "customer": { "id": 3, "name": "Carlos Rivera", "email": "carlos@example.com" },
+      "items": [
+        { "sku": "SKU-004", "title": "27\" Monitor", "qty": 1, "price": 199.99 }
+      ],
+      "notes": "Include HDMI cable",
+      "total": 199.99
+    }
+  ]
+}
