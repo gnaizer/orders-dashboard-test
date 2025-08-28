@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, catchError, throwError } from 'rxjs';
-import { Order } from '../../shared/interfaces/order';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
+import { Observable, catchError, throwError, map } from 'rxjs';
+import { Order, PaginatedOrders } from '../../shared/interfaces/order';
 
 @Injectable({ providedIn: 'root' })
 export class OrdersService {
@@ -18,7 +18,7 @@ export class OrdersService {
     limit?: number;
     sortField?: keyof Order;
     sortDir?: 'asc' | 'desc';
-  }): Observable<Order[]> {
+  }): Observable<PaginatedOrders> {
     let params = new HttpParams();
     if (options?.search) params = params.set('q', options.search);
     if (options?.status) params = params.set('status', options.status);
@@ -31,20 +31,35 @@ export class OrdersService {
       if (options?.sortDir) params = params.set('_order', options.sortDir);
     }
 
-    return this.http.get<Order[]>(this.baseUrl, { params }).pipe(
+    return this.http.get<Order[]>(this.baseUrl, {
+      params,
+      observe: 'response'
+    }).pipe(
+      map(response => {
+        const total = Number(response.headers.get('X-Total-Count')) || 0;
+        return {
+          orders: response.body ?? [],
+          total
+        };
+      }),
       catchError(err => throwError(() => new Error(err?.message || 'Failed to load orders')))
     );
   }
 
+
   getOrderById(id: number): Observable<Order> {
-    return this.http.get<Order>(`${this.baseUrl}/${id}`).pipe(
-      catchError(err => throwError(() => new Error(err?.message || 'Failed to load order')))
-    );
+    return this.http
+      .get<Order>(`${this.baseUrl}/${id}`)
+      .pipe(
+        catchError((err) => throwError(() => new Error(err?.message || 'Failed to load order'))),
+      );
   }
 
   updateOrder(id: number, patch: Partial<Pick<Order, 'status' | 'notes'>>): Observable<Order> {
-    return this.http.patch<Order>(`${this.baseUrl}/${id}`, patch).pipe(
-      catchError(err => throwError(() => new Error(err?.message || 'Failed to update order')))
-    );
+    return this.http
+      .patch<Order>(`${this.baseUrl}/${id}`, patch)
+      .pipe(
+        catchError((err) => throwError(() => new Error(err?.message || 'Failed to update order'))),
+      );
   }
 }

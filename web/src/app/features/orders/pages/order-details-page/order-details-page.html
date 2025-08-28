@@ -1,48 +1,83 @@
-<div class="order-details" *ngIf="order; else notFound">
-  <h1>Order #{{ order.id }}</h1>
+<div class="order-details-container" *ngIf="order; else loadingTpl">
 
-  <!-- Customer Info -->
-  <section class="customer-info">
-    <h2>Customer</h2>
-    <p><strong>Name:</strong> {{ order.customer.name }}</p>
-    <p><strong>Email:</strong> {{ order.customer.email }}</p>
-  </section>
+  <!-- Header: Order ID and Status -->
+  <div class="order-header">
+    <h1>Order #{{ order.id }}</h1>
+    <span class="status-badge" [ngClass]="order.status">{{ order.status }}</span>
+  </div>
 
-  <!-- Items -->
-  <section class="items">
-    <h2>Items</h2>
-    <ul>
-      <li *ngFor="let item of order.items">
-        {{ item.qty }} × {{ item.title }} — {{ item.price | currency }}
-      </li>
-    </ul>
-  </section>
+  <!-- Customer & Order Info -->
+  <div class="customer-info">
+    <div class="info-box">
+      <h3>Customer</h3>
+      <p>{{ order.customer.name }}</p>
+      <p>{{ order.customer.email }}</p>
+    </div>
+    <div class="info-box">
+      <h3>Order Info</h3>
+      <p>Created: {{ order.createdAt | date:'medium' }}</p>
+      <p>Total: ${{ order.total | number:'1.2-2' }}</p>
+      <p>Notes: {{ order.notes || '—' }}</p>
+    </div>
+  </div>
 
-  <!-- Total & Notes -->
-  <section class="summary">
-    <p><strong>Total:</strong> {{ order.total | currency }}</p>
-    <p><strong>Notes:</strong> {{ order.notes }}</p>
-  </section>
+  <!-- Items Table -->
+  <table class="items-table">
+    <thead>
+    <tr>
+      <th>SKU</th>
+      <th>Title</th>
+      <th>Qty</th>
+      <th>Price</th>
+      <th>Subtotal</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let item of order.items">
+      <td>{{ item.sku }}</td>
+      <td>{{ item.title }}</td>
+      <td>{{ item.qty }}</td>
+      <td>${{ item.price | number:'1.2-2' }}</td>
+      <td>${{ (item.price * item.qty) | number:'1.2-2' }}</td>
+    </tr>
+    <tr class="total-row">
+      <td colspan="4">Total</td>
+      <td>${{ order.total | number:'1.2-2' }}</td>
+    </tr>
+    </tbody>
+  </table>
 
   <!-- Status Timeline -->
-  <section class="timeline">
-    <h2>Status Timeline</h2>
-    <ul>
-      <li [class.active]="order.status === 'pending'">Pending</li>
-      <li [class.active]="order.status === 'processing'">Processing</li>
-      <li [class.active]="order.status === 'shipped'">Shipped</li>
-      <li [class.active]="order.status === 'cancelled'">Cancelled</li>
-    </ul>
-  </section>
+  <div class="status-timeline">
+    <div class="step" *ngFor="let s of ['pending','processing','shipped','cancelled']">
+      <div class="circle" [ngClass]="{
+        completed: order.status === s || ['shipped','cancelled'].includes(order.status) && s === 'processing',
+        active: order.status === s
+      }">
+        ✓
+      </div>
+      <span>{{ s }}</span>
+    </div>
+  </div>
 
   <!-- Actions -->
-  <section class="actions">
-    <button (click)="markAsProcessing()" [disabled]="order.status !== 'pending'">Processing</button>
-    <button (click)="shipOrder()" [disabled]="order.status !== 'processing'">Ship</button>
-    <button (click)="cancelOrder()" [disabled]="order.status === 'shipped' || order.status === 'cancelled'">Cancel</button>
-  </section>
+  <div class="actions">
+    <button class="processing" (click)="markAsProcessing()" [disabled]="order.status !== 'pending'">
+      Mark as Processing
+    </button>
+    <button class="ship" (click)="shipOrder()" [disabled]="order.status !== 'processing'">
+      Ship
+    </button>
+    <button class="cancel" (click)="cancelOrder()" [disabled]="order.status === 'shipped' || order.status === 'cancelled'">
+      Cancel
+    </button>
+  </div>
+
 </div>
 
-<ng-template #notFound>
-  <p>Order not found.</p>
+<!-- Loading / Error -->
+<ng-template #loadingTpl>
+  <div class="loading">
+    <p>Loading order details...</p>
+  </div>
 </ng-template>

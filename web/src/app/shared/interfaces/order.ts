@@ -20,3 +20,9 @@ export interface Order {
   notes?: string;
   total: number;
 }
+
+export interface PaginatedOrders {
+  orders: Order[];
+  total: number;
+}
+

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Order } from '../../../../shared/interfaces/order';
 import { OrdersStore } from '../../../../core/state/orders-store';
@@ -19,10 +19,18 @@ export class OrdersPage implements OnInit {
   error = this.store.error;
   statusFilter = this.store.statusFilter;
   searchFilter = this.store.searchFilter;
+  totalOrders = this.store.totalOrders;
+  totalPages = this.store.totalPages;
+
+  pageS = signal(1);
+  limitS = signal(5);
+  search = signal('');
+  status = signal('');
+
 
   // Pagination
   page = 1;
-  limit = 10;
+  limit = 5;
 
   // Status options
   statusOptions: Array<'All' | Order['status']> = [
@@ -34,9 +42,9 @@ export class OrdersPage implements OnInit {
   ];
 
   constructor(
-    private store: OrdersStore,
+    public store: OrdersStore,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -55,11 +63,7 @@ export class OrdersPage implements OnInit {
   }
 
   // Update URL query params
-  private updateQueryParams(params: {
-    page?: number;
-    status?: string;
-    search?: string;
-  }) {
+  private updateQueryParams(params: { page?: number; status?: string; search?: string }) {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: params,
@@ -71,24 +75,34 @@ export class OrdersPage implements OnInit {
   onStatusChange(event: Event): void {
     const input = event.target as HTMLSelectElement | null;
     if (!input) return;
-    this.statusFilter.set(input.value as 'pending' | 'processing' | 'shipped' | 'cancelled' | 'All');
-    this.router.navigate([], { relativeTo: this.route, queryParams: { status: input.value, page: 1 }, queryParamsHandling: 'merge' })
-      .catch(err => console.error('Navigation failed', err));
+    this.statusFilter.set(
+      input.value as 'pending' | 'processing' | 'shipped' | 'cancelled' | 'All',
+    );
+    this.router
+      .navigate([], {
+        relativeTo: this.route,
+        queryParams: { status: input.value, page: 1 },
+        queryParamsHandling: 'merge',
+      })
+      .catch((err) => console.error('Navigation failed', err));
   }
 
   onSearchChange(event: Event): void {
     const input = event.target as HTMLInputElement | null;
     if (!input) return;
     this.searchFilter.set(input.value);
-    this.router.navigate([], { relativeTo: this.route, queryParams: { search: input.value, page: 1 }, queryParamsHandling: 'merge' })
-      .catch(err => console.error('Navigation failed', err));
+    this.router
+      .navigate([], {
+        relativeTo: this.route,
+        queryParams: { search: input.value, page: 1 },
+        queryParamsHandling: 'merge',
+      })
+      .catch((err) => console.error('Navigation failed', err));
   }
 
   // Pagination
   onPageChange(newPage: number): void {
-    this.page = newPage;
-    this.updateQueryParams({ page: newPage });
-    this.store.loadOrders({ page: this.page, limit: this.limit });
+   this.updateQuery({ page: newPage })
   }
 
   // Optimistic actions
@@ -103,4 +117,20 @@ export class OrdersPage implements OnInit {
   cancelOrder(orderId: number) {
     this.store.updateOrderStatus(orderId, 'cancelled');
   }
+
+  private updateQuery(changes: any) {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        page: this.pageS(),
+        limit: this.limitS(),
+        search: this.search(),
+        status: this.status(),
+        ...changes
+      },
+      queryParamsHandling: 'merge'
+    });
+  }
+
+  protected readonly Math = Math;
 }
