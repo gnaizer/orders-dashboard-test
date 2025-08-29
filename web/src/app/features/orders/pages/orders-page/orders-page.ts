@@ -1,44 +1,47 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Order } from '../../../../shared/interfaces/order';
 import { OrdersStore } from '../../../../core/state/orders-store';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { PaginationComponent } from '../../../../shared/components/pagination/pagination';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 @Component({
   selector: 'app-orders-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, PaginationComponent],
   templateUrl: './orders-page.html',
   styleUrls: ['./orders-page.scss'],
 })
+@UntilDestroy()
+
 export class OrdersPage implements OnInit {
-  // Signals from store
   filteredOrders = this.store.filteredOrders;
   loading = this.store.loading;
   error = this.store.error;
   statusFilter = this.store.statusFilter;
   searchFilter = this.store.searchFilter;
+  fromDateFilter = this.store.fromDateFilter;
+  toDateFilter = this.store.toDateFilter;
+  sortField  = this.store.sortField;
+  sortDir = this.store.sortDir;
   totalOrders = this.store.totalOrders;
   totalPages = this.store.totalPages;
 
-  pageS = signal(1);
-  limitS = signal(5);
-  search = signal('');
-  status = signal('');
-
-
-  // Pagination
   page = 1;
   limit = 5;
-
-  // Status options
+  fromDate: string | null = null;
+  toDate: string | null = null;
+  currentSortField: keyof Order | null = null;
+  currentSortDir: 'asc' | 'desc' | null = null;
   statusOptions: Array<'All' | Order['status']> = [
     'All',
     'pending',
     'processing',
     'shipped',
     'cancelled',
+    'delivered'
   ];
 
   constructor(
@@ -48,40 +51,49 @@ export class OrdersPage implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Subscribe to query params
-    this.route.queryParamMap.subscribe((params) => {
+    this.checkQueryParamsAndLoadOrders();
+  }
+
+  checkQueryParamsAndLoadOrders(): void {
+    this.route.queryParamMap.pipe(untilDestroyed(this)).subscribe((params) => {
       const page = Number(params.get('page')) || 1;
       const status = (params.get('status') as any) || 'All';
       const search = params.get('search') || '';
+      const fromDate = params.get('fromDate') || '';
+      const toDate = params.get('toDate') || '';
 
       this.page = page;
       this.statusFilter.set(status);
       this.searchFilter.set(search);
+      this.fromDateFilter.set(fromDate);
+      this.toDateFilter.set(toDate);
 
       this.store.loadOrders({ page: this.page, limit: this.limit });
     });
   }
 
-  // Update URL query params
-  private updateQueryParams(params: { page?: number; status?: string; search?: string }) {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: params,
-      queryParamsHandling: 'merge',
-    });
+  onDateRangeChange(range: { from: string, to: string }) {
+    this.fromDate = range.from;
+    this.toDate = range.to;
+    this.router
+      .navigate([], {
+        relativeTo: this.route,
+        queryParams: { fromDate: this.fromDate, toDate: this.toDate, page: this.page },
+        queryParamsHandling: 'merge',
+      })
+      .catch((err) => console.error('Navigation failed', err));
   }
 
-  // Filter handlers
   onStatusChange(event: Event): void {
     const input = event.target as HTMLSelectElement | null;
     if (!input) return;
     this.statusFilter.set(
-      input.value as 'pending' | 'processing' | 'shipped' | 'cancelled' | 'All',
+      input.value as 'pending' | 'processing' | 'shipped' | 'cancelled' | 'delivered' | 'All',
     );
     this.router
       .navigate([], {
         relativeTo: this.route,
-        queryParams: { status: input.value, page: 1 },
+        queryParams: { status: input.value, page: this.page },
         queryParamsHandling: 'merge',
       })
       .catch((err) => console.error('Navigation failed', err));
@@ -94,18 +106,66 @@ export class OrdersPage implements OnInit {
     this.router
       .navigate([], {
         relativeTo: this.route,
-        queryParams: { search: input.value, page: 1 },
+        queryParams: { search: input.value, page: this.page },
         queryParamsHandling: 'merge',
       })
       .catch((err) => console.error('Navigation failed', err));
   }
 
-  // Pagination
-  onPageChange(newPage: number): void {
-   this.updateQuery({ page: newPage })
+  resetFilters() {
+    this.store.searchFilter.set('');
+    this.store.statusFilter.set('All');
+    this.store.fromDateFilter.set('');
+    this.store.toDateFilter.set('');
+    this.fromDate = '';
+    this.toDate = '';
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {}
+    }).catch(console.error);
+    this.store.loadOrders({ page: this.page, limit: this.limit });
   }
 
-  // Optimistic actions
+  public updateQueryParams(params: {
+    page?: number | null;
+    status?: string | null;
+    search?: string | null;
+    fromDate?: string | null;
+    toDate?: string | null;
+    sortField?: string | null;
+    sortDir?: 'asc' | 'desc' | null;
+  }): void {
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, v]) => v !== null && v !== undefined)
+    );
+
+    this.router
+      .navigate([], {
+        relativeTo: this.route,
+        queryParams: cleanParams,
+        queryParamsHandling: 'merge',
+      })
+      .catch((err) => console.error('Navigation failed', err));
+  }
+
+  toggleDateSort(): void {
+    if (this.sortField() !== 'createdAt') {
+      this.sortField.set('createdAt');
+      this.sortDir.set('asc');
+    } else if (this.sortDir() === 'asc') {
+      this.sortDir.set('desc');
+    }
+
+    this.updateQueryParams({
+      sortField: this.sortField(),
+      sortDir: this.sortDir(),
+    });
+  }
+
+  onPageChange(newPage: number): void {
+    this.updateQueryParams({ page: newPage });
+  }
+
   markAsProcessing(orderId: number) {
     this.store.updateOrderStatus(orderId, 'processing');
   }
@@ -117,20 +177,4 @@ export class OrdersPage implements OnInit {
   cancelOrder(orderId: number) {
     this.store.updateOrderStatus(orderId, 'cancelled');
   }
-
-  private updateQuery(changes: any) {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page: this.pageS(),
-        limit: this.limitS(),
-        search: this.search(),
-        status: this.status(),
-        ...changes
-      },
-      queryParamsHandling: 'merge'
-    });
-  }
-
-  protected readonly Math = Math;
 }

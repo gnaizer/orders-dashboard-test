@@ -9,9 +9,18 @@
       [value]="searchFilter()"
       (input)="onSearchChange($event)"
     />
+    <label>
+      From:
+      <input type="date" [(ngModel)]="fromDate" (change)="onDateRangeChange({from: fromDate!, to: toDate!})"/>
+    </label>
+    <label>
+      To:
+      <input type="date" [(ngModel)]="toDate" (change)="onDateRangeChange({from: fromDate!, to: toDate!})"/>
+    </label>
     <select [value]="statusFilter()" (change)="onStatusChange($event)">
       <option *ngFor="let status of statusOptions" [value]="status">{{ status }}</option>
     </select>
+    <button class="btn-reset" (click)="resetFilters()">Reset</button>
   </div>
 
   <!-- Loading -->
@@ -28,7 +37,12 @@
       <th>Customer</th>
       <th>Status</th>
       <th>Total</th>
-      <th>Date</th>
+      <th (click)="toggleDateSort()" class="cursor-pointer">
+        Created At
+        <span *ngIf="sortField() === 'createdAt'">
+          {{ sortDir() === 'asc' ? '⬆' : '⬇' }}
+        </span>
+      </th>
       <th>Actions</th>
     </tr>
     </thead>
@@ -42,16 +56,18 @@
       <td>
         <button (click)="markAsProcessing(order.id)" [disabled]="order.status !== 'pending'">Processing</button>
         <button (click)="shipOrder(order.id)" [disabled]="order.status !== 'processing'">Ship</button>
-        <button (click)="cancelOrder(order.id)" [disabled]="order.status === 'shipped' || order.status === 'cancelled'">Cancel</button>
+        <button (click)="cancelOrder(order.id)" [disabled]="order.status === 'shipped' || order.status === 'cancelled'">
+          Cancel
+        </button>
       </td>
     </tr>
     </tbody>
   </table>
 
-  <!-- Pagination -->
-  <div class="pagination">
-    <button [disabled]="page === 1" (click)="onPageChange(page - 1)">Previous</button>
-    <span>Page {{ page }} of {{totalPages() }}</span>
-    <button [disabled]="page === totalPages()" (click)="onPageChange(page + 1)">Next</button>
-  </div>
+  <app-pagination
+    [currentPage]="page"
+    [totalPages]="totalPages()"
+    [totalOrders]="totalOrders()"
+    (pageChange)="onPageChange($event)">
+  </app-pagination>
 </div>

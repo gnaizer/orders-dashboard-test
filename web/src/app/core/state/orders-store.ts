@@ -3,6 +3,7 @@ import { catchError, of, tap } from 'rxjs';
 import { NotificationService } from '../services/notification';
 import { Order } from '../../shared/interfaces/order';
 import { OrdersService } from '../services/orders';
+import { OrderFilters } from '../../shared/interfaces/filters';
 
 @Injectable({ providedIn: 'root' })
 export class OrdersStore {
@@ -15,10 +16,15 @@ export class OrdersStore {
   private loadingSignal = signal<boolean>(false);
   private errorSignal = signal<string | null>(null);
   private totalOrdersSignal = signal<number>(0);
-  private totalPagesSignal = signal<number>(0);
 
-  statusFilter = signal<'pending' | 'processing' | 'shipped' | 'cancelled' | 'All'>('All');
+  totalPagesSignal = signal<number>(0);
+  statusFilter = signal<'pending' | 'processing' | 'shipped' | 'cancelled' | 'delivered' | 'All'>('All');
   searchFilter = signal<string>('');
+  fromDateFilter = signal<string>('');
+  toDateFilter = signal<string>('');
+  sortField = signal<keyof Order | null>(null);
+  sortDir = signal<'asc' | 'desc' | null>(null);
+
 
   readonly orders = computed(() => this.ordersSignal());
   readonly loading = computed(() => this.loadingSignal());
@@ -26,17 +32,63 @@ export class OrdersStore {
   readonly totalOrders = computed(() => this.totalOrdersSignal());
   readonly totalPages = computed(() => this.totalPagesSignal());
 
-  readonly filteredOrders = computed(() =>
-    this.ordersSignal().filter((order) => {
-      const matchesStatus = this.statusFilter() === 'All' || order.status === this.statusFilter();
-      const matchesSearch =
-        !this.searchFilter() ||
-        order.customer.name.toLowerCase().includes(this.searchFilter().toLowerCase());
-      return matchesStatus && matchesSearch;
-    }),
-  );
+  readonly filteredOrders = computed(() => {
+    const status = this.statusFilter();
+    const search = this.searchFilter()?.toLowerCase() || '';
+    const fromDate = this.fromDateFilter();
+    const toDate = this.toDateFilter();
+    const sortField = this.sortField();   // signal for current sort field
+    const sortDir = this.sortDir();       // signal for asc/desc
 
-  loadOrders(params: { page?: number; limit?: number } = {}) {
+    return [...this.ordersSignal()] // copy array to avoid mutating the signal
+      .filter(order => {
+        const createdAt = new Date(order.createdAt);
+
+        const matchesStatus =
+          status === 'All' || order.status === status;
+
+        const matchesSearch =
+          !search ||
+          order.customer.name.toLowerCase().includes(search) ||
+          order.items.some(item =>
+            item.title.toLowerCase().includes(search) ||
+            item.sku.toLowerCase().includes(search)
+          );
+
+        const matchesFromDate =
+          !fromDate || createdAt >= new Date(fromDate);
+
+        const matchesToDate =
+          !toDate || createdAt <= new Date(toDate);
+
+        return (
+          matchesStatus &&
+          matchesSearch &&
+          matchesFromDate &&
+          matchesToDate
+        );
+      })
+      .sort((a, b) => {
+        if (!sortField) return 0;
+
+        let aVal = a[sortField as keyof Order];
+        let bVal = b[sortField as keyof Order];
+
+        if (sortField === 'createdAt') {
+          aVal = new Date(aVal as string).getTime();
+          bVal = new Date(bVal as string).getTime();
+        }
+
+        if (aVal == null || bVal == null) return 0;
+
+        if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+  });
+
+
+  loadOrders(params: { fromDate?: string, toDate?: string, page?: number; limit?: number } = {}) {
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
 
@@ -84,7 +136,6 @@ export class OrdersStore {
       .updateOrder(orderId, changes)
       .pipe(
         catchError(() => {
-          // rollback
           this.ordersSignal.update((orders) =>
             orders.map((o) => (o.id === orderId ? currentOrder : o)),
           );

@@ -14,7 +14,7 @@ export interface OrderItem {
 export interface Order {
   id: number;
   createdAt: string; // ISO string
-  status: 'pending' | 'processing' | 'shipped' | 'cancelled';
+  status: 'pending' | 'processing' | 'shipped' | 'cancelled' | 'delivered';
   customer: Customer;
   items: OrderItem[];
   notes?: string;

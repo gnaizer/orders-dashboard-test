@@ -1,12 +1,10 @@
 <div class="order-details-container" *ngIf="order; else loadingTpl">
 
-  <!-- Header: Order ID and Status -->
   <div class="order-header">
     <h1>Order #{{ order.id }}</h1>
     <span class="status-badge" [ngClass]="order.status">{{ order.status }}</span>
   </div>
 
-  <!-- Customer & Order Info -->
   <div class="customer-info">
     <div class="info-box">
       <h3>Customer</h3>
@@ -21,7 +19,6 @@
     </div>
   </div>
 
-  <!-- Items Table -->
   <table class="items-table">
     <thead>
     <tr>
@@ -47,7 +44,6 @@
     </tbody>
   </table>
 
-  <!-- Status Timeline -->
   <div class="status-timeline">
     <div class="step" *ngFor="let s of ['pending','processing','shipped','cancelled']">
       <div class="circle" [ngClass]="{
@@ -60,7 +56,6 @@
     </div>
   </div>
 
-  <!-- Actions -->
   <div class="actions">
     <button class="processing" (click)="markAsProcessing()" [disabled]="order.status !== 'pending'">
       Mark as Processing
